@@ -7,6 +7,7 @@ import { formatCOP, uid } from "@/lib/format";
 import { inRange, resolveRange, saleTotal, type Range, type RangeId } from "@/lib/stats";
 import { downloadCSV, salesToCSV } from "@/lib/csv";
 import { demoSales } from "@/lib/demo";
+import { ui } from "@/lib/ui";
 import SaleForm from "./SaleForm";
 import SalesTable from "./SalesTable";
 import Stats from "./Stats";
@@ -75,41 +76,74 @@ export default function SalesApp() {
     const q = query.trim().toLowerCase();
     if (!q) return inPeriod;
     return inPeriod.filter((s) =>
-      [s.product, s.customer, s.note, s.payment].some((v) => v.toLowerCase().includes(q))
+      [s.product, s.customer, s.note, s.payment].some((v) =>
+        v.toLowerCase().includes(q)
+      )
     );
   }, [inPeriod, query]);
 
-  if (sales === null) return <p className="muted">Cargando…</p>;
+  if (sales === null) {
+    return (
+      <div className={ui.panel}>
+        <p className={ui.muted}>Cargando…</p>
+      </div>
+    );
+  }
 
   const periodTotal = visible.reduce((acc, s) => acc + saleTotal(s), 0);
 
   const saveSale = (data: Omit<Sale, "id" | "createdAt">, id?: string) => {
     if (id) {
-      setSales((list) => (list ?? []).map((s) => (s.id === id ? { ...s, ...data } : s)));
+      setSales((list) =>
+        (list ?? []).map((s) => (s.id === id ? { ...s, ...data } : s))
+      );
       setEditing(null);
       setMessage("Venta actualizada.");
     } else {
-      setSales((list) => [{ ...data, id: uid(), createdAt: Date.now() }, ...(list ?? [])]);
+      setSales((list) => [
+        { ...data, id: uid(), createdAt: Date.now() },
+        ...(list ?? []),
+      ]);
       setMessage("Venta registrada.");
     }
-    // Si la venta cae fuera del periodo visible, se amplía el filtro para que el usuario la vea
+
+    // Si la venta cae fuera del periodo visible, se amplía el filtro para que el usuario la vea.
     if (rangeId !== "all" && rangeId !== "custom") {
-      if (data.date < resolved.range.from || data.date > resolved.range.to) setRangeId("all");
+      if (data.date < resolved.range.from || data.date > resolved.range.to) {
+        setRangeId("all");
+      }
     }
   };
 
   const removeSale = (s: Sale) => {
-    if (!window.confirm(`¿Borrar la venta de "${s.product}" por ${formatCOP(saleTotal(s))}?`)) return;
+    if (
+      !window.confirm(
+        `¿Borrar la venta de "${s.product}" por ${formatCOP(saleTotal(s))}?`
+      )
+    ) {
+      return;
+    }
+
     setSales((list) => (list ?? []).filter((x) => x.id !== s.id));
     if (editing?.id === s.id) setEditing(null);
   };
 
   const exportCSV = () => {
-    downloadCSV(`ventas-${resolved.range.from}_a_${resolved.range.to}.csv`, salesToCSV(visible));
+    downloadCSV(
+      `ventas-${resolved.range.from}_a_${resolved.range.to}.csv`,
+      salesToCSV(visible)
+    );
   };
 
   const clearAll = () => {
-    if (!window.confirm("¿Borrar TODAS las ventas registradas? Esta acción no se puede deshacer.")) return;
+    if (
+      !window.confirm(
+        "¿Borrar TODAS las ventas registradas? Esta acción no se puede deshacer."
+      )
+    ) {
+      return;
+    }
+
     setSales([]);
     setEditing(null);
   };
@@ -121,54 +155,85 @@ export default function SalesApp() {
   };
 
   return (
-    <>
-      <div className="toolbar">
-        <div className="pills" role="group" aria-label="Periodo">
+    <div className={ui.stack}>
+      {/* Filtros de periodo */}
+      <div className={`${ui.panel} grid gap-3`}>
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Periodo">
           {RANGES.map((r) => (
             <button
               key={r.id}
               type="button"
-              className={rangeId === r.id ? "pill active" : "pill"}
+              aria-pressed={rangeId === r.id}
+              className={
+                rangeId === r.id
+                  ? ui.btnPrimary
+                  : ui.btn
+              }
               onClick={() => setRangeId(r.id)}
             >
               {r.label}
             </button>
           ))}
         </div>
+
         {rangeId === "custom" ? (
-          <div className="custom-range">
-            <input
-              type="date"
-              aria-label="Desde"
-              value={custom.from}
-              onChange={(e) => setCustom((c) => ({ ...c, from: e.target.value }))}
-            />
-            <span className="muted">a</span>
-            <input
-              type="date"
-              aria-label="Hasta"
-              value={custom.to}
-              onChange={(e) => setCustom((c) => ({ ...c, to: e.target.value }))}
-            />
+          <div className="grid grid-cols-1 items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
+            <label className={ui.label}>
+              Desde
+              <input
+                type="date"
+                aria-label="Desde"
+                className={ui.input}
+                value={custom.from}
+                onChange={(e) =>
+                  setCustom((c) => ({ ...c, from: e.target.value }))
+                }
+              />
+            </label>
+
+            <span className={`${ui.muted} text-sm sm:pt-5`}>a</span>
+
+            <label className={ui.label}>
+              Hasta
+              <input
+                type="date"
+                aria-label="Hasta"
+                className={ui.input}
+                value={custom.to}
+                onChange={(e) =>
+                  setCustom((c) => ({ ...c, to: e.target.value }))
+                }
+              />
+            </label>
           </div>
         ) : null}
       </div>
 
-      <div className="tabs" role="tablist">
+      {/* Pestañas */}
+      <div className="flex gap-2 border-b border-border" role="tablist" aria-label="Secciones">
         <button
           type="button"
           role="tab"
           aria-selected={tab === "ventas"}
-          className={tab === "ventas" ? "active" : ""}
+          className={`border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${
+            tab === "ventas"
+              ? "border-primary text-text-primary"
+              : "border-transparent text-text-muted hover:text-foreground"
+          }`}
           onClick={() => setTab("ventas")}
         >
           Ventas
         </button>
+
         <button
           type="button"
           role="tab"
           aria-selected={tab === "stats"}
-          className={tab === "stats" ? "active" : ""}
+          className={`border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${
+            tab === "stats"
+              ? "border-primary text-text-primary"
+              : "border-transparent text-text-muted hover:text-foreground"
+          }`}
           onClick={() => setTab("stats")}
         >
           Estadísticas
@@ -176,8 +241,9 @@ export default function SalesApp() {
       </div>
 
       {tab === "ventas" ? (
-        <div className="layout-form">
-          <aside className="side">
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(280px,0.8fr)_minmax(0,1.7fr)]">
+          {/* Formulario */}
+          <aside className="grid min-w-0 gap-4">
             <SaleForm
               key={editing?.id ?? "nueva"}
               editing={editing}
@@ -185,46 +251,84 @@ export default function SalesApp() {
               onSave={saveSale}
               onCancel={() => setEditing(null)}
             />
-            {message ? <p className="toast">{message}</p> : null}
+
+            {message ? (
+              <p className={ui.toast} role="status" aria-live="polite">
+                {message}
+              </p>
+            ) : null}
           </aside>
 
-          <section className="panel">
-            <div className="panel-head wrap">
+          {/* Tabla de ventas */}
+          <section className={`${ui.panel} min-w-0`}>
+            <div className={`${ui.panelHead} items-start`}>
               <div>
-                <h2>Ventas del periodo</h2>
-                <p className="hint" style={{ margin: 0 }}>
-                  {visible.length} {visible.length === 1 ? "venta" : "ventas"} · <strong>{formatCOP(periodTotal)}</strong>
+                <h2 className={ui.title}>Ventas del periodo</h2>
+                <p className="mt-1 text-sm text-text-muted">
+                  {visible.length}{" "}
+                  {visible.length === 1 ? "venta" : "ventas"} ·{" "}
+                  <strong className="font-bold text-foreground">
+                    {formatCOP(periodTotal)}
+                  </strong>
                 </p>
               </div>
-              <div className="head-actions">
+
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                 <input
                   type="search"
-                  className="search"
+                  className={`${ui.input} min-w-0 sm:w-56`}
                   placeholder="Buscar producto, cliente…"
+                  aria-label="Buscar ventas"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                 />
-                <button type="button" className="btn" onClick={exportCSV} disabled={visible.length === 0}>
+
+                <button
+                  type="button"
+                  className={ui.btn}
+                  onClick={exportCSV}
+                  disabled={visible.length === 0}
+                >
                   Exportar CSV
                 </button>
               </div>
             </div>
 
             {sales.length === 0 ? (
-              <div className="empty">
-                <p className="muted">Aún no has registrado ventas. Usa el formulario o carga datos de ejemplo para explorar la app.</p>
-                <button type="button" className="btn" onClick={() => setSales(demoSales())}>
+              <div className="grid justify-items-center gap-3 py-8 text-center">
+                <span className="text-3xl" aria-hidden="true">
+                  🧾
+                </span>
+
+                <p className={`${ui.muted} max-w-md text-sm`}>
+                  Aún no has registrado ventas. Usa el formulario o carga datos
+                  de ejemplo para explorar la app.
+                </p>
+
+                <button
+                  type="button"
+                  className={ui.btn}
+                  onClick={() => setSales(demoSales())}
+                >
                   Cargar datos de ejemplo
                 </button>
               </div>
             ) : (
-              <SalesTable sales={visible} onEdit={startEdit} onDelete={removeSale} />
+              <SalesTable
+                sales={visible}
+                onEdit={startEdit}
+                onDelete={removeSale}
+              />
             )}
 
             {sales.length > 0 ? (
-              <p className="hint foot">
+              <p className={`${ui.hint} mt-4 border-t border-border pt-3`}>
                 Las ventas se guardan solo en este navegador.{" "}
-                <button type="button" className="link danger" onClick={clearAll}>
+                <button
+                  type="button"
+                  className={ui.linkDanger}
+                  onClick={clearAll}
+                >
                   Borrar todo
                 </button>
               </p>
@@ -232,8 +336,13 @@ export default function SalesApp() {
           </section>
         </div>
       ) : (
-        <Stats sales={sales} current={inPeriod} range={resolved.range} prev={resolved.prev} />
+        <Stats
+          sales={sales}
+          current={inPeriod}
+          range={resolved.range}
+          prev={resolved.prev}
+        />
       )}
-    </>
+    </div>
   );
 }

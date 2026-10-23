@@ -30,6 +30,47 @@ El formato sigue una estructura basada en versiones y categorías de cambios.
 
 ---
 
+## [1.2.0] - 2026-10-23
+
+### Added
+
+- Encabezado compartido con la identidad visual de **SatCore Solutions**.
+- Acceso a la instalación de la aplicación mediante `InstallPWAButton`.
+- Control de tema mediante el componente `ThemeToggle`.
+- Pie de página con la identidad corporativa y el eslogan de SatCore Solutions.
+- Clases de interfaz reutilizables centralizadas en `@/lib/ui`.
+
+### Changed
+
+- Migración de los componentes de la interfaz a **Tailwind CSS v4**.
+- Actualización del diseño para mantener una presentación coherente con la identidad visual de SatCore Solutions.
+- Mejora de la distribución y el espaciado del contenido principal.
+- Adaptación de la interfaz a diferentes tamaños de pantalla.
+- Actualización de los estilos de formularios, paneles, botones, tablas, indicadores estadísticos y filtros.
+- Mejora de la presentación de la tabla de ventas y su desplazamiento horizontal en dispositivos con pantallas pequeñas.
+- Actualización de los colores y los estados visuales para utilizar los tokens de diseño compartidos.
+- Actualización de la presentación y los metadatos descriptivos del proyecto para identificarlo como **Control de ventas**.
+
+### Fixed
+
+- Corrección de inconsistencias visuales derivadas de la migración de los estilos anteriores a Tailwind CSS.
+- Ajustes de diseño para mejorar la visualización de los componentes en pantallas pequeñas.
+- Corrección de referencias a clases de estilo anteriores en los componentes migrados.
+
+### Removed
+
+- Eliminación de clases de estilo antiguas que dejaron de utilizarse en los componentes migrados.
+- Retirada de estilos redundantes sustituidos por las clases compartidas de Tailwind CSS.
+
+### Security
+
+- Se mantiene el almacenamiento de los registros de ventas en `localStorage`.
+- Se conserva la compatibilidad con los registros existentes mediante la clave `ventas:registros`.
+- Se documenta que el almacenamiento local no proporciona autenticación, sincronización remota ni protección frente a otras personas que tengan acceso al navegador o al dispositivo.
+- Se recomienda exportar periódicamente los registros para disponer de copias de respaldo.
+
+---
+
 ## [1.0.0] - 2026-10-21
 
 ### Added
